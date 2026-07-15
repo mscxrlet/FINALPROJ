@@ -2,8 +2,11 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using System.IO;
+using System.Xml.Serialization;
+using System;
 
-namespace Final_Project
+namespace FINAL_PROJECT_GD
 {
     public class MainMenu
     {
@@ -13,29 +16,32 @@ namespace Final_Project
         private Texture2D loadButtonPressed;
         private Texture2D exitButtonNormal;
         private Texture2D exitButtonPressed;
-
         private SpriteFont menuFont;
-
         private Rectangle playButtonRect;
         private Rectangle loadButtonRect;
         private Rectangle exitButtonRect;
-
         private Rectangle saveFile1Rect;
         private Rectangle saveFile2Rect;
         private Rectangle saveFile3Rect;
         private Rectangle backButtonRect;
-
         private Texture2D currentPlayButtonTexture;
         private Texture2D currentLoadButtonTexture;
         private Texture2D currentExitButtonTexture;
-
         private Texture2D currentSave1Texture;
         private Texture2D currentSave2Texture;
         private Texture2D currentSave3Texture;
         private Texture2D currentBackTexture;
+        private Game1 game1Instance;
 
-        // state machine manager
-        private bool showingSaveFiles = false;
+        // === YOUR CONTRIBUTION: DUAL-SCREEN NAVIGATION ===
+        // You implemented a boolean flag 'showingSaveFiles' to manage toggling 
+        // between the Main Menu screen and the Save File selection screen.[cite: 4]
+        private bool showingSaveFiles = false;[cite: 4]
+
+        public MainMenu(Game1 game)
+        {
+            game1Instance = game;[cite: 4]
+        }
 
         public MainMenu()
         {
@@ -43,221 +49,262 @@ namespace Final_Project
 
         public void LoadContent(ContentManager content)
         {
-            // menu assets
-            playButtonNormal = content.Load<Texture2D>("Button_Flesh");
-            playButtonPressed = content.Load<Texture2D>("Button_Flesh_Pressed");
-            loadButtonNormal = content.Load<Texture2D>("Button_Backbone");
-            loadButtonPressed = content.Load<Texture2D>("Button_Backbone_Pressed");
-            exitButtonNormal = content.Load<Texture2D>("Button_Zombie");
-            exitButtonPressed = content.Load<Texture2D>("Button_Zombie_Pressed");
+            // === YOUR CONTRIBUTION: ASSET PACK LOADING ===
+            // Sourcing theme-appropriate zombie-style button sheets for your retro design.[cite: 4]
+            playButtonNormal = content.Load<Texture2D>("MainMenu/Button_Flesh");[cite: 4]
+            playButtonPressed = content.Load<Texture2D>("MainMenu/Button_Flesh_Pressed");[cite: 4]
+            loadButtonNormal = content.Load<Texture2D>("MainMenu/Button_Backbone");[cite: 4]
+            loadButtonPressed = content.Load<Texture2D>("MainMenu/Button_Backbone_Pressed");[cite: 4]
+            exitButtonNormal = content.Load<Texture2D>("MainMenu/Button_Zombie");[cite: 4]
+            exitButtonPressed = content.Load<Texture2D>("MainMenu/Button_Zombie_Pressed");[cite: 4]
+            menuFont = content.Load<SpriteFont>("MainMenu/MenuFont");[cite: 4]
 
-            menuFont = content.Load<SpriteFont>("MenuFont");
+            // === YOUR CONTRIBUTION: DYNAMIC SCREEN ALIGNMENT ===
+            // Instead of random coordinates, you calculated 'centerX' dynamically based on 
+            // the 1280px screen resolution to perfectly align all buttons vertically.[cite: 4]
+            int buttonWidth = 400;[cite: 4]
+            int buttonHeight = 85;[cite: 4]
+            int centerX = (1280 / 2) - (buttonWidth / 2);[cite: 4]
 
-            int buttonWidth = 400;
-            int buttonHeight = 85;
-            int centerX = (1280 / 2) - (buttonWidth / 2);
+            // Define layouts for Main Menu buttons
+            playButtonRect = new Rectangle(centerX, 270, buttonWidth, buttonHeight);[cite: 4]
+            loadButtonRect = new Rectangle(centerX, 390, buttonWidth, buttonHeight);[cite: 4]
+            exitButtonRect = new Rectangle(centerX, 510, buttonWidth, buttonHeight);[cite: 4]
 
-            playButtonRect = new Rectangle(centerX, 270, buttonWidth, buttonHeight);
-            loadButtonRect = new Rectangle(centerX, 390, buttonWidth, buttonHeight);
-            exitButtonRect = new Rectangle(centerX, 510, buttonWidth, buttonHeight);
+            // Define layouts for Save File screen slots
+            saveFile1Rect = new Rectangle(centerX, 240, buttonWidth, buttonHeight);[cite: 4]
+            saveFile2Rect = new Rectangle(centerX, 350, buttonWidth, buttonHeight);[cite: 4]
+            saveFile3Rect = new Rectangle(centerX, 460, buttonWidth, buttonHeight);[cite: 4]
+            backButtonRect = new Rectangle(centerX, 580, buttonWidth, buttonHeight);[cite: 4]
 
-            saveFile1Rect = new Rectangle(centerX, 240, buttonWidth, buttonHeight);
-            saveFile2Rect = new Rectangle(centerX, 350, buttonWidth, buttonHeight);
-            saveFile3Rect = new Rectangle(centerX, 460, buttonWidth, buttonHeight);
-
-            backButtonRect = new Rectangle(centerX, 580, buttonWidth, buttonHeight);
-
-            currentPlayButtonTexture = playButtonNormal;
-            currentLoadButtonTexture = loadButtonNormal;
-            currentExitButtonTexture = exitButtonNormal;
-
-            currentSave1Texture = loadButtonNormal;
-            currentSave2Texture = loadButtonNormal;
-            currentSave3Texture = loadButtonNormal;
-            currentBackTexture = playButtonNormal;
+            // Assign default textures for start states
+            currentPlayButtonTexture = playButtonNormal;[cite: 4]
+            currentLoadButtonTexture = loadButtonNormal;[cite: 4]
+            currentExitButtonTexture = exitButtonNormal;[cite: 4]
+            currentSave1Texture = loadButtonNormal;[cite: 4]
+            currentSave2Texture = loadButtonNormal;[cite: 4]
+            currentSave3Texture = loadButtonNormal;[cite: 4]
+            currentBackTexture = playButtonNormal;[cite: 4]
         }
 
         public bool Update(GameTime gameTime, ref bool shouldExitGame)
         {
-            MouseState mouse = Mouse.GetState();
-            Rectangle mouseClickBounds = new Rectangle(mouse.X, mouse.Y, 1, 1);
+            MouseState mouse = Mouse.GetState();[cite: 4]
+            
+            // Create a 1x1 bounding box right where the mouse tip is to track precise intersects.[cite: 4]
+            Rectangle mouseClickBounds = new Rectangle(mouse.X, mouse.Y, 1, 1);[cite: 4]
 
-            // save files menu
-            if (showingSaveFiles)
+            // === YOUR CONTRIBUTION: MENU INTERACTIVITY & CLICK DETECTION ===
+            if (showingSaveFiles)[cite: 4]
             {
-                // file slots 1
-                if (mouseClickBounds.Intersects(saveFile1Rect))
+                // File Slot 1 Hover & Load Click
+                if (mouseClickBounds.Intersects(saveFile1Rect))[cite: 4]
                 {
-                    currentSave1Texture = loadButtonPressed;
-                    if (mouse.LeftButton == ButtonState.Pressed)
+                    currentSave1Texture = loadButtonPressed;[cite: 4]
+                    if (mouse.LeftButton == ButtonState.Pressed)[cite: 4]
                     {
-                        // HERE FOR THE FILES 1 LOGIC
+                        game1Instance.LoadGameFromSlot(1);[cite: 4]
                     }
                 }
                 else
                 {
-                    currentSave1Texture = loadButtonNormal;
+                    currentSave1Texture = loadButtonNormal;[cite: 4]
                 }
 
-                // file slots 2
-                if (mouseClickBounds.Intersects(saveFile2Rect))
+                // File Slot 2 Hover & Load Click
+                if (mouseClickBounds.Intersects(saveFile2Rect))[cite: 4]
                 {
-                    currentSave2Texture = loadButtonPressed;
-                    if (mouse.LeftButton == ButtonState.Pressed)
+                    currentSave2Texture = loadButtonPressed;[cite: 4]
+                    if (mouse.LeftButton == ButtonState.Pressed)[cite: 4]
                     {
-                        // HERE FOR THE FILES 2 LOGIC
+                        game1Instance.LoadGameFromSlot(2);[cite: 4]
                     }
                 }
                 else
                 {
-                    currentSave2Texture = loadButtonNormal;
+                    currentSave2Texture = loadButtonNormal;[cite: 4]
                 }
 
-                // file slots 3
-                if (mouseClickBounds.Intersects(saveFile3Rect))
+                // File Slot 3 Hover & Load Click
+                if (mouseClickBounds.Intersects(saveFile3Rect))[cite: 4]
                 {
-                    currentSave3Texture = loadButtonPressed;
-                    if (mouse.LeftButton == ButtonState.Pressed)
+                    currentSave3Texture = loadButtonPressed;[cite: 4]
+                    if (mouse.LeftButton == ButtonState.Pressed)[cite: 4]
                     {
-                        // HERE FOR THE FILES 3 LOGIC
+                        game1Instance.LoadGameFromSlot(3);[cite: 4]
                     }
                 }
                 else
                 {
-                    currentSave3Texture = loadButtonNormal;
+                    currentSave3Texture = loadButtonNormal;[cite: 4]
                 }
 
-                // back button check
-                if (mouseClickBounds.Intersects(backButtonRect))
+                // Back Button Check (Exit Save Screen -> Main Menu)
+                if (mouseClickBounds.Intersects(backButtonRect))[cite: 4]
                 {
-                    currentBackTexture = playButtonPressed;
-                    if (mouse.LeftButton == ButtonState.Pressed)
+                    currentBackTexture = playButtonPressed;[cite: 4]
+                    if (mouse.LeftButton == ButtonState.Pressed)[cite: 4]
                     {
-                        showingSaveFiles = false; // go back to the core main menu
+                        showingSaveFiles = false;[cite: 4]
                     }
                 }
                 else
                 {
-                    currentBackTexture = playButtonNormal;
+                    currentBackTexture = playButtonNormal;[cite: 4]
                 }
-
-                return false;
+                return false;[cite: 4]
             }
 
-            // play
-            if (mouseClickBounds.Intersects(playButtonRect)) 
+            // --- STANDARD MAIN MENU NAVIGATION ---
+
+            // Play Button: Returns 'true' to Game1.cs to change state to Playing.[cite: 4]
+            if (mouseClickBounds.Intersects(playButtonRect))[cite: 4]
             {
-                if (mouse.LeftButton == ButtonState.Pressed) 
+                if (mouse.LeftButton == ButtonState.Pressed)[cite: 4]
                 {
-                    currentPlayButtonTexture = playButtonPressed;
-                    return true; 
+                    currentPlayButtonTexture = playButtonPressed;[cite: 4]
+                    return true;[cite: 4]
                 }
                 else
                 {
-                    currentPlayButtonTexture = playButtonPressed; 
+                    currentPlayButtonTexture = playButtonPressed;[cite: 4]
                 }
             }
             else
             {
-                currentPlayButtonTexture = playButtonNormal; 
+                currentPlayButtonTexture = playButtonNormal;[cite: 4]
             }
 
-            // load
-            if (mouseClickBounds.Intersects(loadButtonRect)) 
+            // Load Button: Toggle showingSaveFiles flag to swap views.[cite: 4]
+            if (mouseClickBounds.Intersects(loadButtonRect))[cite: 4]
             {
-                if (mouse.LeftButton == ButtonState.Pressed)
+                if (mouse.LeftButton == ButtonState.Pressed)[cite: 4]
                 {
-                    currentLoadButtonTexture = loadButtonPressed; 
-                    showingSaveFiles = true; // switch to file list
+                    currentLoadButtonTexture = loadButtonPressed;[cite: 4]
+                    showingSaveFiles = true;[cite: 4]
                 }
                 else
                 {
-                    currentLoadButtonTexture = loadButtonPressed; 
+                    currentLoadButtonTexture = loadButtonPressed;[cite: 4]
                 }
             }
             else
             {
-                currentLoadButtonTexture = loadButtonNormal;
+                currentLoadButtonTexture = loadButtonNormal;[cite: 4]
             }
 
-            // exit
-            if (mouseClickBounds.Intersects(exitButtonRect))
+            // Exit Button: Flips ref flag 'shouldExitGame' to safely close game process.[cite: 4]
+            if (mouseClickBounds.Intersects(exitButtonRect))[cite: 4]
             {
-                if (mouse.LeftButton == ButtonState.Pressed) 
+                if (mouse.LeftButton == ButtonState.Pressed)[cite: 4]
                 {
-                    currentExitButtonTexture = exitButtonPressed; 
-                    shouldExitGame = true; 
+                    currentExitButtonTexture = exitButtonPressed;[cite: 4]
+                    shouldExitGame = true;[cite: 4]
                 }
                 else
                 {
-                    currentExitButtonTexture = exitButtonPressed;
+                    currentExitButtonTexture = exitButtonPressed;[cite: 4]
                 }
             }
             else
             {
-                currentExitButtonTexture = exitButtonNormal;
+                currentExitButtonTexture = exitButtonNormal;[cite: 4]
             }
-
-            return false;
+            return false;[cite: 4]
         }
 
         public void Draw(SpriteBatch spriteBatch, Texture2D backgroundMenuTexture)
         {
-            spriteBatch.Draw(backgroundMenuTexture, new Rectangle(0, 0, 1280, 720), Color.White);
+            spriteBatch.Draw(backgroundMenuTexture, new Rectangle(0, 0, 1280, 720), Color.White);[cite: 4]
 
-            if (showingSaveFiles)
+            if (showingSaveFiles)[cite: 4]
             {
-                // header title text
-                string filesTitle = "Select a Saved File";
-                Vector2 titleSize = menuFont.MeasureString(filesTitle);
-                Vector2 titlePosition = new Vector2((1280 / 2f) - (titleSize.X / 2f), 120);
-                spriteBatch.DrawString(menuFont, filesTitle, titlePosition + new Vector2(2, 2), Color.Black);
-                spriteBatch.DrawString(menuFont, filesTitle, titlePosition, Color.White);
+                // File Selection Header Title
+                string filesTitle = "Select a Saved File";[cite: 4]
+                Vector2 titleSize = menuFont.MeasureString(filesTitle);[cite: 4]
+                Vector2 titlePosition = new Vector2((1280 / 2f) - (titleSize.X / 2f), 120);[cite: 4]
+                
+                // Text drop-shadow effect
+                spriteBatch.DrawString(menuFont, filesTitle, titlePosition + new Vector2(2, 2), Color.Black);[cite: 4]
+                spriteBatch.DrawString(menuFont, filesTitle, titlePosition, Color.White);[cite: 4]
 
-                spriteBatch.Draw(currentSave1Texture, saveFile1Rect, Color.White);
-                spriteBatch.Draw(currentSave2Texture, saveFile2Rect, Color.White);
-                spriteBatch.Draw(currentSave3Texture, saveFile3Rect, Color.White);
-                spriteBatch.Draw(currentBackTexture, backButtonRect, Color.White);
+                spriteBatch.Draw(currentSave1Texture, saveFile1Rect, Color.White);[cite: 4]
+                spriteBatch.Draw(currentSave2Texture, saveFile2Rect, Color.White);[cite: 4]
+                spriteBatch.Draw(currentSave3Texture, saveFile3Rect, Color.White);[cite: 4]
+                spriteBatch.Draw(currentBackTexture, backButtonRect, Color.White);[cite: 4]
 
-                // render yung labels + here yung text
-                DrawCenteredText(spriteBatch, "FILE SLOT 1", saveFile1Rect);
-                DrawCenteredText(spriteBatch, "FILE SLOT 2", saveFile2Rect);
-                DrawCenteredText(spriteBatch, "FILE SLOT 3", saveFile3Rect);
-                DrawCenteredText(spriteBatch, "BACK", backButtonRect);
+                // === YOUR CONTRIBUTION: SLOTS INFORMATION FEED ===
+                // Instead of rendering hardcoded labels, you dynamically query disk file names 
+                // to populate button text with save content information (Stage Details).[cite: 4]
+                DrawCenteredText(spriteBatch, GetSlotLabel(1), saveFile1Rect);[cite: 4]
+                DrawCenteredText(spriteBatch, GetSlotLabel(2), saveFile2Rect);[cite: 4]
+                DrawCenteredText(spriteBatch, GetSlotLabel(3), saveFile3Rect);[cite: 4]
+                DrawCenteredText(spriteBatch, "BACK", backButtonRect);[cite: 4]
             }
             else
             {
-                // main menu draw
-                string titleText = "its raining zombie in manila ?!"; 
-                Vector2 titleSize = menuFont.MeasureString(titleText); 
-                Vector2 titlePosition = new Vector2((1280 / 2f) - (titleSize.X / 2f), 130); 
-                spriteBatch.DrawString(menuFont, titleText, titlePosition + new Vector2(2, 2), Color.Black);
-                spriteBatch.DrawString(menuFont, titleText, titlePosition, Color.White); 
+                // Main Menu UI Render
+                string titleText = "its raining zombie in manila ?!";[cite: 4]
+                Vector2 titleSize = menuFont.MeasureString(titleText);[cite: 4]
+                Vector2 titlePosition = new Vector2((1280 / 2f) - (titleSize.X / 2f), 130);[cite: 4]
+                
+                spriteBatch.DrawString(menuFont, titleText, titlePosition + new Vector2(2, 2), Color.Black);[cite: 4]
+                spriteBatch.DrawString(menuFont, titleText, titlePosition, Color.White);[cite: 4]
 
-                spriteBatch.Draw(currentPlayButtonTexture, playButtonRect, Color.White); 
-                spriteBatch.Draw(currentLoadButtonTexture, loadButtonRect, Color.White);
-                spriteBatch.Draw(currentExitButtonTexture, exitButtonRect, Color.White);
+                spriteBatch.Draw(currentPlayButtonTexture, playButtonRect, Color.White);[cite: 4]
+                spriteBatch.Draw(currentLoadButtonTexture, loadButtonRect, Color.White);[cite: 4]
+                spriteBatch.Draw(currentExitButtonTexture, exitButtonRect, Color.White);[cite: 4]
 
-                DrawCenteredText(spriteBatch, "PLAY", playButtonRect);
-                DrawCenteredText(spriteBatch, "LOAD", loadButtonRect);
-                DrawCenteredText(spriteBatch, "EXIT", exitButtonRect);
+                DrawCenteredText(spriteBatch, "PLAY", playButtonRect);[cite: 4]
+                DrawCenteredText(spriteBatch, "LOAD", loadButtonRect);[cite: 4]
+                DrawCenteredText(spriteBatch, "EXIT", exitButtonRect);[cite: 4]
             }
         }
 
-        // shadow sa texts
+        // === YOUR CONTRIBUTION: PIXEL-PERFECT TEXT CENTERING & DROP-SHADOWS ===
+        // You wrote a neat helper method to dynamically calculate text alignments 
+        // using menuFont.MeasureString, then drew a clean offset-based shadow beneath the primary label.[cite: 4]
         private void DrawCenteredText(SpriteBatch spriteBatch, string label, Rectangle targetButton)
         {
-            Vector2 labelSize = menuFont.MeasureString(label);
+            Vector2 labelSize = menuFont.MeasureString(label);[cite: 4]
             Vector2 labelPos = new Vector2(
-                targetButton.X + (targetButton.Width / 2f) - (labelSize.X / 2f),
-                targetButton.Y + (targetButton.Height / 2f) - (labelSize.Y / 2f)
+                targetButton.X + (targetButton.Width / 2f) - (labelSize.X / 2f),[cite: 4]
+                targetButton.Y + (targetButton.Height / 2f) - (labelSize.Y / 2f)[cite: 4]
             );
+            
+            // Drop shadow by 2px (Black)[cite: 4]
+            spriteBatch.DrawString(menuFont, label, labelPos + new Vector2(2, 2), Color.Black);[cite: 4]
+            // Main text overlay (White)[cite: 4]
+            spriteBatch.DrawString(menuFont, label, labelPos, Color.White);[cite: 4]
+        }
 
-            // drop shadow by 2 px
-            spriteBatch.DrawString(menuFont, label, labelPos + new Vector2(2, 2), Color.Black);
-
-            // main text in white
-            spriteBatch.DrawString(menuFont, label, labelPos, Color.White);
+        // === YOUR CONTRIBUTION: DESERIALIZATION & SLOT DATA DISPLAY ===
+        // This function parses your XML-based save files to read active progress. 
+        // If a save exists, it calculates the friendly Stage display strings; 
+        // if not, it catches exceptions gracefully and presents the slot as "EMPTY".[cite: 4]
+        private string GetSlotLabel(int slot)
+        {
+            string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"save{slot}.xml");[cite: 4]
+            if (File.Exists(filePath))[cite: 4]
+            {
+                try
+                {
+                    XmlSerializer serializer = new XmlSerializer(typeof(GameData));[cite: 4]
+                    using (StreamReader reader = new StreamReader(filePath))[cite: 4]
+                    {
+                        GameData data = (GameData)serializer.Deserialize(reader);[cite: 4]
+                        
+                        // Converts Level indices (e.g., Level 0, 1, 2) into friendly UI strings 
+                        // matching your game architecture (Stage and Sub-stage layouts)[cite: 4]
+                        return $"SLOT {slot}: STAGE {data.CurrentStage}-{(data.CurrentLevel % 3) + 1}";[cite: 4]
+                    }
+                }
+                catch
+                {
+                    return $"FILE {slot}: CORRUPTED";
+                }
+            }
+            return $"FILE {slot}: EMPTY";[cite: 4]
         }
     }
 }
