@@ -160,3 +160,58 @@ This allows us to keep the small, crisp source file size while rendering it at a
 * [ ] **Are your `colliders` lists updated?** 
                      (Be ready to explain that these lists are passed into the `Player.Update` method from `Game1.cs` so the
                       player knows what objects are solid.
+
+
+/*
+ * 🎮 PROJECT: ITS RAINING ZOMBIES IN MANILA?!
+ * 
+ * SYSTEM ARCHITECTURE OVERVIEW:
+ * 1. ENTRY POINT (MainMenu.cs): 
+ *    - Acts as the gatekeeper. 
+ *    - Loads game state from XML files via Deserialization[cite: 3].
+ *    - Passes control to Game1 once "PLAY" or a "LOAD SLOT" is selected[cite: 3].
+ *
+ * 2. CORE ENGINE (Player.cs + HealthSystem.cs):
+ *    - Player.cs handles the "physics & visuals" (Movement, Hitboxes, Attacks).
+ *    - HealthSystem.cs handles the "state & logic" (HP, Death Flags, Character Swaps).
+ *
+ * 3. THE COLLABORATION LOOP:
+ *    - Player takes damage -> Calls HealthSystem.TakeDamage()[cite: 4].
+ *    - HealthSystem checks if HP <= 0 -> Marks character as DEAD[cite: 2].
+ *    - HealthSystem triggers a callback (Action) back to Player -> StartDeath()[cite: 2, 4].
+ *    - Player updates animations -> Switches to next living character in the Enum list[cite: 4].
+ */
+
+// --- HOW THE DATA MOVES ---
+/*
+ * STEP 1: INITIALIZATION
+ * MainMenu checks for existing XML files (save1, 2, 3) using Path.Combine[cite: 3].
+ * It deserializes data into a GameData object (Stage/Level info)[cite: 3].
+ *
+ * STEP 2: PLAYER PHYSICS (The AABB System)
+ * In Player.cs, Update() is the heartbeat[cite: 4]. 
+ * - We check Input -> Update Velocity -> Resolve Collisions[cite: 4].
+ * - If the player intersects a spike, the damageCooldownTimer prevents "spamming" damage[cite: 4].
+ * - Collision resolution "snaps" the player hitbox to the collider boundaries (Left/Right/Top/Bottom)[cite: 4].
+ *
+ * STEP 3: COMBAT & CHARACTER IDENTITY
+ * - Abby (Ranged): Spawns a projectile vector and monitors its distance until > 800px[cite: 4].
+ * - Edward (Melee): Generates an "invisible" Rectangle hitbox in front of him when attacking[cite: 4].
+ * - Nadine (AoE): Uses a List<MovingFlower> and pre-defined FlowerOffsets to draw an attack pattern[cite: 4].
+ *
+ * STEP 4: DEATH & SWAP LOGIC
+ * - When HealthSystem.TakeDamage() is called, it performs a search:
+ *   foreach (CharacterType type in Enum.GetValues(typeof(CharacterType)))[cite: 2]
+ *   - It looks for any character where characterDeadStates[type] == false[cite: 2].
+ *   - The first one it finds is "swapped in" via the callback[cite: 2].
+ */
+
+// --- SUMMARY FOR DEFENSE: ---
+/*
+ * "The game is designed with a Separation of Concerns principle. 
+ * The MainMenu handles file I/O (XML/Serialization)[cite: 3]. 
+ * The Player class handles entity behavior (Physics/Animations)[cite: 4]. 
+ * The HealthSystem handles global game state and character lifecycle (HP/Death)[cite: 2]. 
+ * They are linked by Action delegates, allowing them to communicate without being 
+ * hard-coded to each other, making the code cleaner and easier to maintain."[cite: 2]
+ */
